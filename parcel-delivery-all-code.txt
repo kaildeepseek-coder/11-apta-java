@@ -1,0 +1,858 @@
+24. Сәлемдеме жеткізу қызметі — Java + MySQL + Maven
+Жобаның барлық файлдары бір мәтіндік құжатта.
+
+========================================================================
+ФАЙЛ: pom.xml
+========================================================================
+
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>kz.delivery</groupId>
+    <artifactId>parcel-delivery</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <maven.compiler.release>17</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <version>9.7.0</version>
+        </dependency>
+    </dependencies>
+</project>
+
+========================================================================
+ФАЙЛ: src/main/java/kz/delivery/DBConnection.java
+========================================================================
+
+package kz.delivery;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+
+public class DBConnection {
+    private static final String URL = "jdbc:mysql://localhost:3306/parcel_delivery?useSSL=false&serverTimezone=UTC";
+    private static final String USER = "root";
+    private static final String PASSWORD = "";
+
+    public static Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(URL, USER, PASSWORD);
+    }
+}
+
+========================================================================
+ФАЙЛ: src/main/java/kz/delivery/Main.java
+========================================================================
+
+package kz.delivery;
+
+import java.math.BigDecimal;
+import java.sql.SQLException;
+import java.util.Scanner;
+
+public class Main {
+    private static final Scanner scanner = new Scanner(System.in);
+    private static final SenderDAO senderDAO = new SenderDAO();
+    private static final RecipientDAO recipientDAO = new RecipientDAO();
+    private static final StatusDAO statusDAO = new StatusDAO();
+    private static final ShipmentDAO shipmentDAO = new ShipmentDAO();
+
+    public static void main(String[] args) {
+        while (true) {
+            System.out.println("\n=== СӘЛЕМДЕМЕ ЖЕТКІЗУ ҚЫЗМЕТІ ===");
+            System.out.println("1. Жіберушілер");
+            System.out.println("2. Алушылар");
+            System.out.println("3. Мәртебелер");
+            System.out.println("4. Сәлемдемелер");
+            System.out.println("0. Шығу");
+
+            int choice = readInt("Таңдау: ");
+            switch (choice) {
+                case 1 -> senderMenu();
+                case 2 -> recipientMenu();
+                case 3 -> statusMenu();
+                case 4 -> shipmentMenu();
+                case 0 -> {
+                    System.out.println("Бағдарлама аяқталды.");
+                    scanner.close();
+                    return;
+                }
+                default -> System.out.println("Қате таңдау.");
+            }
+        }
+    }
+
+    private static void senderMenu() {
+        while (true) {
+            printSubMenu("ЖІБЕРУШІЛЕР");
+            int choice = readInt("Таңдау: ");
+            if (choice == 0) return;
+
+            try {
+                switch (choice) {
+                    case 1 -> {
+                        String name = readText("Аты-жөні: ");
+                        String phone = readText("Телефон: ");
+                        String city = readText("Қала: ");
+                        printResult(senderDAO.add(name, phone, city));
+                    }
+                    case 2 -> senderDAO.showAll();
+                    case 3 -> senderDAO.search(readText("Ізделетін аты: "));
+                    case 4 -> {
+                        int id = readInt("ID: ");
+                        String name = readText("Жаңа аты-жөні: ");
+                        String phone = readText("Жаңа телефон: ");
+                        String city = readText("Жаңа қала: ");
+                        printResult(senderDAO.update(id, name, phone, city));
+                    }
+                    case 5 -> printResult(senderDAO.delete(readInt("Өшірілетін ID: ")));
+                    default -> System.out.println("Қате таңдау.");
+                }
+            } catch (SQLException e) {
+                printError(e);
+            }
+        }
+    }
+
+    private static void recipientMenu() {
+        while (true) {
+            printSubMenu("АЛУШЫЛАР");
+            int choice = readInt("Таңдау: ");
+            if (choice == 0) return;
+
+            try {
+                switch (choice) {
+                    case 1 -> {
+                        String name = readText("Аты-жөні: ");
+                        String phone = readText("Телефон: ");
+                        String address = readText("Мекенжай: ");
+                        printResult(recipientDAO.add(name, phone, address));
+                    }
+                    case 2 -> recipientDAO.showAll();
+                    case 3 -> recipientDAO.search(readText("Ізделетін аты: "));
+                    case 4 -> {
+                        int id = readInt("ID: ");
+                        String name = readText("Жаңа аты-жөні: ");
+                        String phone = readText("Жаңа телефон: ");
+                        String address = readText("Жаңа мекенжай: ");
+                        printResult(recipientDAO.update(id, name, phone, address));
+                    }
+                    case 5 -> printResult(recipientDAO.delete(readInt("Өшірілетін ID: ")));
+                    default -> System.out.println("Қате таңдау.");
+                }
+            } catch (SQLException e) {
+                printError(e);
+            }
+        }
+    }
+
+    private static void statusMenu() {
+        while (true) {
+            printSubMenu("МӘРТЕБЕЛЕР");
+            int choice = readInt("Таңдау: ");
+            if (choice == 0) return;
+
+            try {
+                switch (choice) {
+                    case 1 -> printResult(statusDAO.add(readText("Мәртебе атауы: ")));
+                    case 2 -> statusDAO.showAll();
+                    case 3 -> statusDAO.search(readText("Ізделетін атау: "));
+                    case 4 -> {
+                        int id = readInt("ID: ");
+                        String name = readText("Жаңа атау: ");
+                        printResult(statusDAO.update(id, name));
+                    }
+                    case 5 -> printResult(statusDAO.delete(readInt("Өшірілетін ID: ")));
+                    default -> System.out.println("Қате таңдау.");
+                }
+            } catch (SQLException e) {
+                printError(e);
+            }
+        }
+    }
+
+    private static void shipmentMenu() {
+        while (true) {
+            printSubMenu("СӘЛЕМДЕМЕЛЕР");
+            int choice = readInt("Таңдау: ");
+            if (choice == 0) return;
+
+            try {
+                switch (choice) {
+                    case 1 -> {
+                        String code = readText("Трек-код: ");
+                        int senderId = readInt("Жіберуші ID: ");
+                        int recipientId = readInt("Алушы ID: ");
+                        int statusId = readInt("Мәртебе ID: ");
+                        String description = readText("Сипаттама: ");
+                        BigDecimal weight = readWeight();
+                        printResult(shipmentDAO.add(code, senderId, recipientId,
+                                statusId, description, weight));
+                    }
+                    case 2 -> shipmentDAO.showAll();
+                    case 3 -> shipmentDAO.search(readText("Трек-код, атау немесе сипаттама: "));
+                    case 4 -> {
+                        int id = readInt("Сәлемдеме ID: ");
+                        String code = readText("Жаңа трек-код: ");
+                        int senderId = readInt("Жіберуші ID: ");
+                        int recipientId = readInt("Алушы ID: ");
+                        int statusId = readInt("Жаңа мәртебе ID: ");
+                        String description = readText("Жаңа сипаттама: ");
+                        BigDecimal weight = readWeight();
+                        printResult(shipmentDAO.update(id, code, senderId,
+                                recipientId, statusId, description, weight));
+                    }
+                    case 5 -> printResult(shipmentDAO.delete(readInt("Өшірілетін ID: ")));
+                    default -> System.out.println("Қате таңдау.");
+                }
+            } catch (SQLException e) {
+                printError(e);
+            }
+        }
+    }
+
+    private static void printSubMenu(String title) {
+        System.out.println("\n=== " + title + " ===");
+        System.out.println("1. Қосу (CREATE)");
+        System.out.println("2. Барлығын көрсету (READ)");
+        System.out.println("3. Іздеу (READ)");
+        System.out.println("4. Өзгерту (UPDATE)");
+        System.out.println("5. Өшіру (DELETE)");
+        System.out.println("0. Артқа");
+    }
+
+    private static String readText(String message) {
+        while (true) {
+            System.out.print(message);
+            String text = scanner.nextLine().trim();
+            if (!text.isEmpty()) return text;
+            System.out.println("Бос енгізуге болмайды.");
+        }
+    }
+
+    private static int readInt(String message) {
+        while (true) {
+            System.out.print(message);
+            try {
+                return Integer.parseInt(scanner.nextLine().trim());
+            } catch (NumberFormatException e) {
+                System.out.println("Бүтін сан енгізіңіз.");
+            }
+        }
+    }
+
+    private static BigDecimal readWeight() {
+        while (true) {
+            System.out.print("Салмақ (кг): ");
+            try {
+                BigDecimal weight = new BigDecimal(scanner.nextLine().trim().replace(',', '.'));
+                if (weight.compareTo(BigDecimal.ZERO) > 0) return weight;
+            } catch (NumberFormatException e) {
+                System.out.println("Қате сан.");
+                continue;
+            }
+            System.out.println("Салмақ 0-ден үлкен болуы керек.");
+        }
+    }
+
+    private static void printResult(boolean success) {
+        System.out.println(success ? "Сәтті орындалды." : "ID табылмады.");
+    }
+
+    private static void printError(SQLException e) {
+        System.out.println("Деректер қоры қатесі: " + e.getMessage());
+    }
+}
+
+========================================================================
+ФАЙЛ: src/main/java/kz/delivery/SenderDAO.java
+========================================================================
+
+package kz.delivery;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+public class SenderDAO {
+    public boolean add(String name, String phone, String city) throws SQLException {
+        String sql = "INSERT INTO senders (full_name, phone, city) VALUES (?, ?, ?)";
+        try (Connection connection = DBConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, name);
+            statement.setString(2, phone);
+            statement.setString(3, city);
+            return statement.executeUpdate() > 0;
+        }
+    }
+
+    public void showAll() throws SQLException {
+        show(null);
+    }
+
+    public void search(String name) throws SQLException {
+        show(name);
+    }
+
+    private void show(String name) throws SQLException {
+        String sql = "SELECT id, full_name, phone, city FROM senders";
+        if (name != null) {
+            sql += " WHERE full_name LIKE ?";
+        }
+        sql += " ORDER BY id";
+
+        try (Connection connection = DBConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            if (name != null) {
+                statement.setString(1, "%" + name + "%");
+            }
+            try (ResultSet result = statement.executeQuery()) {
+                boolean found = false;
+                while (result.next()) {
+                    found = true;
+                    System.out.println(result.getInt("id") + " | "
+                            + result.getString("full_name") + " | "
+                            + result.getString("phone") + " | "
+                            + result.getString("city"));
+                }
+                if (!found) {
+                    System.out.println("Жазба табылмады.");
+                }
+            }
+        }
+    }
+
+    public boolean update(int id, String name, String phone, String city) throws SQLException {
+        String sql = "UPDATE senders SET full_name = ?, phone = ?, city = ? WHERE id = ?";
+        try (Connection connection = DBConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, name);
+            statement.setString(2, phone);
+            statement.setString(3, city);
+            statement.setInt(4, id);
+            return statement.executeUpdate() > 0;
+        }
+    }
+
+    public boolean delete(int id) throws SQLException {
+        String sql = "DELETE FROM senders WHERE id = ?";
+        try (Connection connection = DBConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, id);
+            return statement.executeUpdate() > 0;
+        }
+    }
+}
+
+========================================================================
+ФАЙЛ: src/main/java/kz/delivery/RecipientDAO.java
+========================================================================
+
+package kz.delivery;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+public class RecipientDAO {
+    public boolean add(String name, String phone, String address) throws SQLException {
+        String sql = "INSERT INTO recipients (full_name, phone, address) VALUES (?, ?, ?)";
+        try (Connection connection = DBConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, name);
+            statement.setString(2, phone);
+            statement.setString(3, address);
+            return statement.executeUpdate() > 0;
+        }
+    }
+
+    public void showAll() throws SQLException {
+        show(null);
+    }
+
+    public void search(String name) throws SQLException {
+        show(name);
+    }
+
+    private void show(String name) throws SQLException {
+        String sql = "SELECT id, full_name, phone, address FROM recipients";
+        if (name != null) {
+            sql += " WHERE full_name LIKE ?";
+        }
+        sql += " ORDER BY id";
+
+        try (Connection connection = DBConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            if (name != null) {
+                statement.setString(1, "%" + name + "%");
+            }
+            try (ResultSet result = statement.executeQuery()) {
+                boolean found = false;
+                while (result.next()) {
+                    found = true;
+                    System.out.println(result.getInt("id") + " | "
+                            + result.getString("full_name") + " | "
+                            + result.getString("phone") + " | "
+                            + result.getString("address"));
+                }
+                if (!found) {
+                    System.out.println("Жазба табылмады.");
+                }
+            }
+        }
+    }
+
+    public boolean update(int id, String name, String phone, String address) throws SQLException {
+        String sql = "UPDATE recipients SET full_name = ?, phone = ?, address = ? WHERE id = ?";
+        try (Connection connection = DBConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, name);
+            statement.setString(2, phone);
+            statement.setString(3, address);
+            statement.setInt(4, id);
+            return statement.executeUpdate() > 0;
+        }
+    }
+
+    public boolean delete(int id) throws SQLException {
+        String sql = "DELETE FROM recipients WHERE id = ?";
+        try (Connection connection = DBConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, id);
+            return statement.executeUpdate() > 0;
+        }
+    }
+}
+
+========================================================================
+ФАЙЛ: src/main/java/kz/delivery/StatusDAO.java
+========================================================================
+
+package kz.delivery;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+public class StatusDAO {
+    public boolean add(String name) throws SQLException {
+        String sql = "INSERT INTO statuses (name) VALUES (?)";
+        try (Connection connection = DBConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, name);
+            return statement.executeUpdate() > 0;
+        }
+    }
+
+    public void showAll() throws SQLException {
+        show(null);
+    }
+
+    public void search(String name) throws SQLException {
+        show(name);
+    }
+
+    private void show(String name) throws SQLException {
+        String sql = "SELECT id, name FROM statuses";
+        if (name != null) {
+            sql += " WHERE name LIKE ?";
+        }
+        sql += " ORDER BY id";
+
+        try (Connection connection = DBConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            if (name != null) {
+                statement.setString(1, "%" + name + "%");
+            }
+            try (ResultSet result = statement.executeQuery()) {
+                boolean found = false;
+                while (result.next()) {
+                    found = true;
+                    System.out.println(result.getInt("id") + " | " + result.getString("name"));
+                }
+                if (!found) {
+                    System.out.println("Жазба табылмады.");
+                }
+            }
+        }
+    }
+
+    public boolean update(int id, String name) throws SQLException {
+        String sql = "UPDATE statuses SET name = ? WHERE id = ?";
+        try (Connection connection = DBConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, name);
+            statement.setInt(2, id);
+            return statement.executeUpdate() > 0;
+        }
+    }
+
+    public boolean delete(int id) throws SQLException {
+        String sql = "DELETE FROM statuses WHERE id = ?";
+        try (Connection connection = DBConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, id);
+            return statement.executeUpdate() > 0;
+        }
+    }
+}
+
+========================================================================
+ФАЙЛ: src/main/java/kz/delivery/ShipmentDAO.java
+========================================================================
+
+package kz.delivery;
+
+import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+public class ShipmentDAO {
+    public boolean add(String trackingCode, int senderId, int recipientId,
+                       int statusId, String description, BigDecimal weight) throws SQLException {
+        String sql = "INSERT INTO shipments "
+                + "(tracking_code, sender_id, recipient_id, status_id, description, weight_kg) "
+                + "VALUES (?, ?, ?, ?, ?, ?)";
+        try (Connection connection = DBConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, trackingCode);
+            statement.setInt(2, senderId);
+            statement.setInt(3, recipientId);
+            statement.setInt(4, statusId);
+            statement.setString(5, description);
+            statement.setBigDecimal(6, weight);
+            return statement.executeUpdate() > 0;
+        }
+    }
+
+    public void showAll() throws SQLException {
+        show(null);
+    }
+
+    public void search(String text) throws SQLException {
+        show(text);
+    }
+
+    private void show(String text) throws SQLException {
+        String sql = "SELECT sh.id, sh.tracking_code, se.full_name AS sender_name, "
+                + "re.full_name AS recipient_name, st.name AS status_name, "
+                + "sh.description, sh.weight_kg, sh.created_at "
+                + "FROM shipments sh "
+                + "JOIN senders se ON sh.sender_id = se.id "
+                + "JOIN recipients re ON sh.recipient_id = re.id "
+                + "JOIN statuses st ON sh.status_id = st.id";
+        if (text != null) {
+            sql += " WHERE sh.tracking_code LIKE ? OR sh.description LIKE ?"
+                    + " OR se.full_name LIKE ? OR re.full_name LIKE ?";
+        }
+        sql += " ORDER BY sh.id";
+
+        try (Connection connection = DBConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            if (text != null) {
+                for (int i = 1; i <= 4; i++) {
+                    statement.setString(i, "%" + text + "%");
+                }
+            }
+            try (ResultSet result = statement.executeQuery()) {
+                boolean found = false;
+                while (result.next()) {
+                    found = true;
+                    System.out.println("ID: " + result.getInt("id")
+                            + " | Код: " + result.getString("tracking_code")
+                            + " | Жіберуші: " + result.getString("sender_name")
+                            + " | Алушы: " + result.getString("recipient_name")
+                            + " | Мәртебе: " + result.getString("status_name")
+                            + " | Сипаттама: " + result.getString("description")
+                            + " | Салмақ: " + result.getBigDecimal("weight_kg") + " кг"
+                            + " | Күні: " + result.getTimestamp("created_at"));
+                }
+                if (!found) {
+                    System.out.println("Жазба табылмады.");
+                }
+            }
+        }
+    }
+
+    public boolean update(int id, String trackingCode, int senderId, int recipientId,
+                          int statusId, String description, BigDecimal weight) throws SQLException {
+        String sql = "UPDATE shipments SET tracking_code = ?, sender_id = ?, recipient_id = ?, "
+                + "status_id = ?, description = ?, weight_kg = ? WHERE id = ?";
+        try (Connection connection = DBConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, trackingCode);
+            statement.setInt(2, senderId);
+            statement.setInt(3, recipientId);
+            statement.setInt(4, statusId);
+            statement.setString(5, description);
+            statement.setBigDecimal(6, weight);
+            statement.setInt(7, id);
+            return statement.executeUpdate() > 0;
+        }
+    }
+
+    public boolean delete(int id) throws SQLException {
+        String sql = "DELETE FROM shipments WHERE id = ?";
+        try (Connection connection = DBConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, id);
+            return statement.executeUpdate() > 0;
+        }
+    }
+}
+
+========================================================================
+ФАЙЛ: sql/01_schema.sql
+========================================================================
+
+CREATE DATABASE IF NOT EXISTS parcel_delivery
+    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+USE parcel_delivery;
+
+CREATE TABLE IF NOT EXISTS senders (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(100) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    city VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS recipients (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(100) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    address VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS statuses (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(60) NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS shipments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tracking_code VARCHAR(30) NOT NULL UNIQUE,
+    sender_id INT NOT NULL,
+    recipient_id INT NOT NULL,
+    status_id INT NOT NULL,
+    description VARCHAR(255) NOT NULL,
+    weight_kg DECIMAL(8,2) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sender_id) REFERENCES senders(id),
+    FOREIGN KEY (recipient_id) REFERENCES recipients(id),
+    FOREIGN KEY (status_id) REFERENCES statuses(id),
+    CHECK (weight_kg > 0)
+);
+
+INSERT IGNORE INTO statuses (id, name) VALUES
+    (1, 'Қабылданды'),
+    (2, 'Жолда'),
+    (3, 'Жеткізілді'),
+    (4, 'Күтілуде');
+
+========================================================================
+ФАЙЛ: sql/02_sample_data.sql
+========================================================================
+
+USE parcel_delivery;
+
+INSERT INTO senders (full_name, phone, city) VALUES
+    ('Аян Серік', '87010000001', 'Алматы'),
+    ('Дана Қуат', '87010000002', 'Астана'),
+    ('Ержан Мұрат', '87010000003', 'Шымкент');
+
+INSERT INTO recipients (full_name, phone, address) VALUES
+    ('Мадина Әли', '87020000001', 'Алматы, Абылай хан 10'),
+    ('Нұржан Бек', '87020000002', 'Астана, Мәңгілік ел 5'),
+    ('Аружан Ермек', '87020000003', 'Шымкент, Тәуке хан 15');
+
+INSERT INTO shipments (tracking_code, sender_id, recipient_id, status_id, description, weight_kg) VALUES
+    ('KZ-1001', 1, 2, 1, 'Кітап', 1.20),
+    ('KZ-1002', 2, 3, 2, 'Киім', 2.50),
+    ('KZ-1003', 3, 1, 3, 'Құжат', 0.30);
+
+========================================================================
+ФАЙЛ: sql/03_crud_test.sql
+========================================================================
+
+USE parcel_delivery;
+START TRANSACTION;
+
+INSERT INTO senders (full_name, phone, city)
+VALUES ('Тест Жіберуші', '87030000001', 'Тараз');
+SET @sender_id = LAST_INSERT_ID();
+SELECT * FROM senders WHERE id = @sender_id;
+UPDATE senders SET city = 'Қарағанды' WHERE id = @sender_id;
+SELECT * FROM senders WHERE id = @sender_id;
+
+INSERT INTO recipients (full_name, phone, address)
+VALUES ('Тест Алушы', '87030000002', 'Ақтөбе, Абай 12');
+SET @recipient_id = LAST_INSERT_ID();
+SELECT * FROM recipients WHERE id = @recipient_id;
+UPDATE recipients SET address = 'Ақтөбе, Абай 15' WHERE id = @recipient_id;
+SELECT * FROM recipients WHERE id = @recipient_id;
+
+INSERT INTO statuses (name) VALUES ('Тест мәртебе');
+SET @status_id = LAST_INSERT_ID();
+SELECT * FROM statuses WHERE id = @status_id;
+UPDATE statuses SET name = 'Тест мәртебе өзгерді' WHERE id = @status_id;
+SELECT * FROM statuses WHERE id = @status_id;
+
+INSERT INTO shipments (tracking_code, sender_id, recipient_id, status_id, description, weight_kg)
+VALUES ('TEST-CRUD-001', @sender_id, @recipient_id, @status_id, 'Тест қорап', 1.50);
+SET @shipment_id = LAST_INSERT_ID();
+SELECT * FROM shipments WHERE tracking_code = 'TEST-CRUD-001';
+UPDATE shipments SET tracking_code = 'TEST-CRUD-002', description = 'Өзгерген қорап', weight_kg = 2.00
+WHERE id = @shipment_id;
+SELECT * FROM shipments WHERE id = @shipment_id;
+
+DELETE FROM shipments WHERE id = @shipment_id;
+DELETE FROM statuses WHERE id = @status_id;
+DELETE FROM recipients WHERE id = @recipient_id;
+DELETE FROM senders WHERE id = @sender_id;
+
+SELECT * FROM shipments WHERE id = @shipment_id;
+SELECT * FROM statuses WHERE id = @status_id;
+SELECT * FROM recipients WHERE id = @recipient_id;
+SELECT * FROM senders WHERE id = @sender_id;
+ROLLBACK;
+
+========================================================================
+ФАЙЛ: README.md
+========================================================================
+
+# Сәлемдеме жеткізу қызметі (№24)
+
+Java және MySQL арқылы жасалған консольдік бағдарлама. Жоба жіберушілерді, алушыларды, сәлемдемелерді және олардың жеткізу мәртебелерін басқарады.
+
+## Технологиялар
+
+- Java 17
+- Maven
+- MySQL
+- JDBC (MySQL Connector/J 9.7.0)
+- IntelliJ IDEA
+
+## Деректер қоры
+
+Жоба 4 байланысқан кестеден тұрады.
+
+| Кесте | Өрістер және типтер | Кілттер |
+| --- | --- | --- |
+| `senders` | `id INT`, `full_name VARCHAR(100)`, `phone VARCHAR(20)`, `city VARCHAR(100)` | `id` — PRIMARY KEY |
+| `recipients` | `id INT`, `full_name VARCHAR(100)`, `phone VARCHAR(20)`, `address VARCHAR(255)` | `id` — PRIMARY KEY |
+| `statuses` | `id INT`, `name VARCHAR(60)` | `id` — PRIMARY KEY, `name` — UNIQUE |
+| `shipments` | `id INT`, `tracking_code VARCHAR(30)`, `sender_id INT`, `recipient_id INT`, `status_id INT`, `description VARCHAR(255)`, `weight_kg DECIMAL(8,2)`, `created_at TIMESTAMP` | `id` — PRIMARY KEY; `tracking_code` — UNIQUE; `sender_id`, `recipient_id`, `status_id` — FOREIGN KEY |
+
+Байланыстар:
+
+- `senders (1) → (N) shipments`
+- `recipients (1) → (N) shipments`
+- `statuses (1) → (N) shipments`
+
+Басқа кестеде қолданылып тұрған жіберушіні, алушыны немесе мәртебені жоюға MySQL сыртқы кілт арқылы рұқсат бермейді.
+
+## IntelliJ IDEA-да іске қосу
+
+1. **Java 17** және **MySQL Server** орнатыңыз.
+2. MySQL Workbench-те `sql/01_schema.sql` файлын ашып, SQL кодын орындаңыз. Бұл деректер қорын, 4 кестені және бастапқы мәртебелерді жасайды.
+3. `sql/02_sample_data.sql` файлын **бір рет** орындаңыз. Ол 3 жіберушіні, 3 алушыны және 3 сәлемдемені қосады.
+4. IntelliJ IDEA → **Open** → `parcel-delivery` қалтасын таңдаңыз.
+5. Maven тәуелділіктері жүктелгенін күтіңіз. Қажет болса, Maven панелінен **Reload All Maven Projects** таңдаңыз.
+6. `src/main/java/kz/delivery/DBConnection.java` файлын ашып, MySQL логині мен құпиясөзін өз ортаңызға сәйкес өзгертіңіз:
+
+   ```java
+   private static final String URL = "jdbc:mysql://localhost:3306/parcel_delivery?useSSL=false&serverTimezone=UTC";
+   private static final String USER = "root";
+   private static final String PASSWORD = "";
+   ```
+
+7. `src/main/java/kz/delivery/Main.java` → **Run 'Main.main()'**.
+
+Құпиясөзді нақты мәнге өзгерткен болсаңыз, GitHub-қа жарияламас бұрын оны қайтадан бос мәнге ауыстырыңыз. Репозиторийге жеке құпиясөздерді жібермеңіз.
+
+## Консольдік мәзір
+
+Негізгі мәзір:
+
+```text
+1. Жіберушілер
+2. Алушылар
+3. Мәртебелер
+4. Сәлемдемелер
+0. Шығу
+```
+
+Әр бөлімде:
+
+```text
+1. Қосу (CREATE)
+2. Барлығын көрсету (READ)
+3. Іздеу (READ)
+4. Өзгерту (UPDATE)
+5. Өшіру (DELETE)
+0. Артқа
+```
+
+Әр операциядан кейін сол бөлімнің мәзірі қайта ашылады.
+
+Сәлемдемені қосқанда алдымен жіберуші, алушы және мәртебе кестесіндегі **ID** мәндерін қолданасыз. Сәлемдемені іздеу трек-код, сипаттама, жіберуші немесе алушының аты бойынша жұмыс істейді.
+
+## CRUD тексеру
+
+`sql/03_crud_test.sql` файлында 4 кестеге де арналған INSERT, SELECT, UPDATE және DELETE сұраныстары бар. Оны MySQL Workbench-те орындауға болады. Сынақ жазбалары соңында өшіріледі, ал `ROLLBACK` транзакцияны кері қайтарады.
+
+Консольде тексеру реті:
+
+1. `4 → 2`: үш бастапқы сәлемдемені көрсету.
+2. `4 → 3`: `KZ-1001` коды бойынша іздеу.
+3. `4 → 1`: жаңа сәлемдеме қосу (`sender_id=1`, `recipient_id=2`, `status_id=1`).
+4. `4 → 4`: жаңа сәлемдеменің ID-ін енгізіп, мәртебесін `2` етіп өзгерту.
+5. `4 → 5`: жаңа сәлемдемені ID арқылы жою.
+6. `4 → 2`: нәтижені тексеру.
+
+Барлық қолданушы енгізулері `PreparedStatement` арқылы SQL сұранысына беріледі. Деректер қоры ресурстары `try-with-resources` арқылы жабылады, `SQLException` өңделеді.
+
+## Жоба құрылымы
+
+```text
+parcel-delivery/
+├── pom.xml
+├── README.md
+├── .gitignore
+├── sql/
+│   ├── 01_schema.sql
+│   ├── 02_sample_data.sql
+│   └── 03_crud_test.sql
+└── src/main/java/kz/delivery/
+    ├── Main.java
+    ├── DBConnection.java
+    ├── SenderDAO.java
+    ├── RecipientDAO.java
+    ├── StatusDAO.java
+    └── ShipmentDAO.java
+```
+
+========================================================================
+ФАЙЛ: .gitignore
+========================================================================
+
+.idea/
+*.iml
+target/
+*.log
+.DS_Store
+
